@@ -37,6 +37,13 @@ func main() {
                 fmt.Printf("err %v\n", err)
         }
         fmt.Printf("bank %+v", bank["2241"])
+        All(bank)
+}
+
+func All(bank map[string]*zengincode.Bank) {
+    for k, v := range bank {
+        // some operation ...
+    }
 }
 
 ```
