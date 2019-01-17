@@ -10,6 +10,7 @@ import (
 	"github.com/ka2u/zengin-code-go/embed"
 )
 
+// New is making Japanese ZenginCode Information mapping data
 func New() (map[string]*Bank, error) {
 	path := os.Getenv("ZENGIN_SOURCE_ROOT")
 	if path == "" {
@@ -48,7 +49,7 @@ func getBanksFile(include string, yaml string, dataDir string) ([]byte, error) {
 	var banksFile []byte
 	var err error
 	if include == "TRUE" {
-		if yaml == "true" {
+		if yaml == "TRUE" {
 			banksFile, err = embed.ReadFile("source-data/data/banks.yaml")
 			if err != nil {
 				return nil, err
@@ -60,7 +61,7 @@ func getBanksFile(include string, yaml string, dataDir string) ([]byte, error) {
 			}
 		}
 	} else {
-		if yaml == "true" {
+		if yaml == "TRUE" {
 			yamlSource := filepath.Join(dataDir, "banks.yml")
 			banksFile, err = ioutil.ReadFile(yamlSource)
 			if err != nil {

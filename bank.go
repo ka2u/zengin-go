@@ -1,5 +1,6 @@
 package zengincode
 
+// Bank is Japanes Bank information structure
 type Bank struct {
 	Name     string `json:"name"`
 	Kana     string `json:"kana"`
