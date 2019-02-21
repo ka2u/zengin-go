@@ -6,5 +6,5 @@ type Bank struct {
 	Kana     string `json:"kana"`
 	Hira     string `json:"hira"`
 	Roma     string `json:"roma"`
-	Branches map[string]*Branch
+	Branches *BranchDB
 }

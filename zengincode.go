@@ -7,11 +7,21 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/derekparker/trie"
+
 	"github.com/ka2u/zengin-code-go/embed"
 )
 
+type BankDB struct {
+	Bank *trie.Trie
+}
+
+type BranchDB struct {
+	Branch *trie.Trie
+}
+
 // New is making Japanese ZenginCode Information mapping data
-func New() (map[string]*Bank, error) {
+func New() (*BankDB, error) {
 	path := os.Getenv("ZENGIN_SOURCE_ROOT")
 	if path == "" {
 		return nil, errors.New("should set ZENGIN_SOURCE environment variable")
@@ -24,14 +34,19 @@ func New() (map[string]*Bank, error) {
 	if err != nil {
 		return nil, err
 	}
-	bank := map[string]*Bank{}
 
+	bank := map[string]*Bank{}
 	err = json.Unmarshal(banksFile, &bank)
 	if err != nil {
 		return nil, err
 	}
+
+	bankdb := trie.New()
+
 	branchDir := filepath.Join(dataDir, "branches")
 	for code := range bank {
+		bk := bank[code]
+
 		branchFile, err := getBranchFile(include, yaml, code, branchDir)
 
 		branch := map[string]*Branch{}
@@ -39,10 +54,67 @@ func New() (map[string]*Bank, error) {
 		if err != nil {
 			return nil, err
 		}
-		bank[code].Branches = branch
+		branchdb := trie.New()
+		for bcode := range branch {
+			br := branch[bcode]
+			branchdb.Add(bcode, br)
+			branchdb.Add(br.Name, br)
+			branchdb.Add(br.Kana, br)
+			branchdb.Add(br.Hira, br)
+			branchdb.Add(br.Roma, br)
+		}
+
+		brd := &BranchDB{
+			Branch: branchdb,
+		}
+		bk.Branches = brd
+		bankdb.Add(code, bk)
+		bankdb.Add(bk.Name, bk)
+		bankdb.Add(bk.Kana, bk)
+		bankdb.Add(bk.Hira, bk)
+		bankdb.Add(bk.Roma, bk)
 	}
 
+	bd := &BankDB{
+		Bank: bankdb,
+	}
+	return bd, nil
+}
+
+func (b *BankDB) Find(key string) (*Bank, error) {
+	node, ok := b.Bank.Find(key)
+	if ok == false {
+		return nil, errors.New("not found")
+	}
+	bank := node.Meta().(*Bank)
 	return bank, nil
+}
+func (b *BankDB) PrefixSearch(pre string) []string {
+	return b.Bank.PrefixSearch(pre)
+}
+func (b *BankDB) HasKeysWithPrefix(key string) bool {
+	return b.Bank.HasKeysWithPrefix(key)
+}
+func (b *BankDB) FuzzySearch(pre string) []string {
+	return b.Bank.FuzzySearch(pre)
+}
+
+func (b *BranchDB) Find(key string) (*Branch, error) {
+	node, ok := b.Branch.Find(key)
+	if ok == false {
+		return nil, errors.New("not found")
+	}
+	branch := node.Meta().(*Branch)
+	return branch, nil
+}
+func (b *BranchDB) PrefixSearch(pre string) []string {
+	return b.Branch.PrefixSearch(pre)
+}
+func (b *BranchDB) HasKeysWithPrefix(key string) bool {
+	return b.Branch.HasKeysWithPrefix(key)
+}
+func (b *BranchDB) FuzzySearch(pre string) []string {
+	return b.Branch.FuzzySearch(pre)
 }
 
 func getBanksFile(include string, yaml string, dataDir string) ([]byte, error) {

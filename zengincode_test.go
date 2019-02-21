@@ -65,7 +65,11 @@ func TestBankNew(t *testing.T) {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			bank := got[tt.code]
+			bank, err := got.Find(tt.code)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Find() error = %v", err)
+				return
+			}
 			if tt.want.Name != bank.Name {
 				t.Errorf("New() Name = %s, want %s", bank.Name, tt.want.Name)
 				return
@@ -104,7 +108,7 @@ func TestBranch(t *testing.T) {
 				Name: "六本木",
 				Kana: "ロツポンギ",
 				Hira: "ろつぽんぎ",
-				Roma: "ropponngi",
+				Roma: "rotsupongi",
 			},
 			wantErr: false,
 		},
@@ -148,11 +152,21 @@ func TestBranch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := New()
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			branch := got[tt.code].Branches[tt.branchCode]
+			bank, err := got.Find(tt.code)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Find() error = %v", err)
+				return
+			}
+			branch, err := bank.Branches.Find(tt.branchCode)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Find() error = %v", err)
+				return
+			}
 			if tt.want.Name != branch.Name {
 				t.Errorf("New() Name = %s, want %s", branch.Name, tt.want.Name)
 				return

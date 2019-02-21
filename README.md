@@ -15,7 +15,7 @@ go get -u github.com/ka2u/zengin-go.git
 ### Set environment variable
 
 - ZENGIN_SOURCE_ROOT(MANDATORY)
-    - Set the absolute path where is the zengincode source data dirctory.
+    - Set the absolute path where is the zengincode source data directory.
 - ZENGIN_SOURCE_YAML(OPTIONAL)
     - Set the value is TRUE or FALSE If you want to use YAML data. Default data is JSON.
 - ZENGIN_SOURCE_INCLUDE(OPTIOANL)
@@ -36,14 +36,11 @@ func main() {
         if err != nil {
                 fmt.Printf("err %v\n", err)
         }
-        fmt.Printf("bank %+v", bank["2241"])
-        All(bank)
-}
-
-func All(bank map[string]*zengincode.Bank) {
-    for k, v := range bank {
-        // some operation ...
-    }
+        bank, err := bank.Find("2241")
+        if err != nil {
+            fmt.Error("not found")
+        }
+        fmt.Printf("bank %+v", bank)
 }
 
 ```
@@ -51,6 +48,11 @@ func All(bank map[string]*zengincode.Bank) {
 ## Embedded
 
 I use [fileb0x](https://github.com/UnnoTed/fileb0x).
+
+## Note
+
+New() method is very heavy loading process.
+It is recommended to load and cache at the initial process.
 
 ## Contributing
 
