@@ -9,7 +9,7 @@ import (
 
 	"github.com/derekparker/trie"
 
-	"github.com/ka2u/zengin-code-go/embed"
+	"github.com/ka2u/zengin-go/embed"
 )
 
 type BankDB struct {
