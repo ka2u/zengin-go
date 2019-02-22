@@ -46,6 +46,7 @@ func New() (*BankDB, error) {
 	branchDir := filepath.Join(dataDir, "branches")
 	for code := range bank {
 		bk := bank[code]
+		bk.Code = code
 
 		branchFile, err := getBranchFile(include, yaml, code, branchDir)
 
@@ -59,8 +60,6 @@ func New() (*BankDB, error) {
 			br := branch[bcode]
 			branchdb.Add(bcode, br)
 			branchdb.Add(br.Name, br)
-			branchdb.Add(br.Kana, br)
-			branchdb.Add(br.Hira, br)
 			branchdb.Add(br.Roma, br)
 		}
 
@@ -70,8 +69,6 @@ func New() (*BankDB, error) {
 		bk.Branches = brd
 		bankdb.Add(code, bk)
 		bankdb.Add(bk.Name, bk)
-		bankdb.Add(bk.Kana, bk)
-		bankdb.Add(bk.Hira, bk)
 		bankdb.Add(bk.Roma, bk)
 	}
 

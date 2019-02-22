@@ -2,6 +2,7 @@ package zengincode
 
 import (
 	"os"
+	"sort"
 	"testing"
 )
 
@@ -183,6 +184,51 @@ func TestBranch(t *testing.T) {
 				t.Errorf("New() Roma = %s, want %s", branch.Roma, tt.want.Roma)
 				return
 			}
+		})
+	}
+}
+
+func TestFuzzySearch(t *testing.T) {
+	os.Setenv("ZENGIN_SOURCE_INCLUDE", "TRUE")
+	tests := []struct {
+		name     string
+		bankName string
+		want     []string
+		wantErr  bool
+	}{
+		{
+			name:     "mitsubishi ufj",
+			bankName: "三菱",
+			want:     []string{"三菱ＵＦＪ", "長崎三菱信組", "三菱ＵＦＪ信託"},
+			wantErr:  false,
+		},
+		{
+			name:     "risona",
+			bankName: "りそな",
+			want:     []string{"りそな", "埼玉りそな"},
+			wantErr:  false,
+		},
+		{
+			name:     "code",
+			bankName: "003",
+			want:     []string{"0033", "0034", "0035", "0036", "0038", "0039", "0403", "0603", "1003", "3003"},
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := New()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			banks := got.FuzzySearch(tt.bankName)
+			sort.Strings(banks)
+			if tt.want[0] != banks[0] {
+				t.Errorf("FuzzySearch() banks = %v, want %v", banks, tt.want)
+				return
+			}
+
 		})
 	}
 }
