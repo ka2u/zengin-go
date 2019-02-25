@@ -14,12 +14,11 @@ go get -u github.com/ka2u/zengin-go.git
 
 ### Set environment variable
 
-- ZENGIN_SOURCE_ROOT(MANDATORY)
+- ZENGIN_SOURCE_ROOT or ZENGIN_SOURCE_INCLUDE (MANDATORY)
     - Set the absolute path where is the zengincode source data directory.
-- ZENGIN_SOURCE_YAML(OPTIONAL)
-    - Set the value is TRUE or FALSE If you want to use YAML data. Default data is JSON.
-- ZENGIN_SOURCE_INCLUDE(OPTIOANL)
     - Set the value is TRUE or FALSE If you want to use embedded zengincode data.
+- ZENGIN_SOURCE_YAML (OPTIONAL)
+    - Set the value is TRUE or FALSE If you want to use YAML data. Default data is JSON.
 
 ```golang
 

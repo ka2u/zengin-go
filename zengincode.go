@@ -22,13 +22,16 @@ type BranchDB struct {
 
 // New is making Japanese ZenginCode Information mapping data
 func New() (*BankDB, error) {
-	path := os.Getenv("ZENGIN_SOURCE_ROOT")
-	if path == "" {
-		return nil, errors.New("should set ZENGIN_SOURCE environment variable")
-	}
-	dataDir := filepath.Join(path, "data")
-	yaml := os.Getenv("ZENGIN_SOURCE_YAML")
 	include := os.Getenv("ZENGIN_SOURCE_INCLUDE")
+	var path, dataDir string
+	if include != "TRUE" {
+		path = os.Getenv("ZENGIN_SOURCE_ROOT")
+		if path == "" {
+			return nil, errors.New("should set ZENGIN_SOURCE_ROOT environment variable")
+		}
+		dataDir = filepath.Join(path, "data")
+	}
+	yaml := os.Getenv("ZENGIN_SOURCE_YAML")
 
 	banksFile, err := getBanksFile(include, yaml, dataDir)
 	if err != nil {
