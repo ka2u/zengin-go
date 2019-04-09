@@ -14,11 +14,55 @@ go get -u github.com/ka2u/zengin-go.git
 
 ### Set environment variable
 
-- ZENGIN_SOURCE_ROOT or ZENGIN_SOURCE_INCLUDE (MANDATORY)
+- ZENGIN_SOURCE_ROOT
     - Set the absolute path where is the zengincode source data directory.
-    - Set the value is TRUE or FALSE If you want to use embedded zengincode data.
+    - You use zengin source from file(not embed), this is MANDATORY.
 - ZENGIN_SOURCE_YAML (OPTIONAL)
     - Set the value is TRUE or FALSE If you want to use YAML data. Default data is JSON.
+
+```golang
+
+package main
+
+import (
+    "fmt"
+
+    zengincode "github.com/ka2u/zengin-code-go"
+)
+
+func main() {
+	bank, err := zengincode.New()
+	if err != nil {
+		fmt.Printf("err %v\n", err)
+	}
+
+	b, err := bank.Find("0005")
+	if err != nil {
+		fmt.Printf("err %v\n", err)
+	} else {
+		fmt.Printf("bank %s", b.Name)
+	}
+
+	br, err := b.Branches.Find("恵比寿")
+	if err != nil {
+		fmt.Printf("err %v\n", err)
+	} else {
+		fmt.Printf("branch %s", br.Name)
+	}
+
+}
+
+```
+
+## Embed
+
+Use Statik if You want to use embed zengin source.
+
+### make embed file
+
+```
+statik -source=source-data/data
+```
 
 ```golang
 
@@ -28,25 +72,32 @@ import (
         "fmt"
 
         zengincode "github.com/ka2u/zengin-code-go"
+        - "your/app/path/statik"
 )
 
 func main() {
-        bank, err := zengincode.New()
-        if err != nil {
-                fmt.Printf("err %v\n", err)
-        }
-        bank, err := bank.Find("2241")
-        if err != nil {
-            fmt.Error("not found")
-        }
-        fmt.Printf("bank %+v", bank)
+	bank, err := zengincode.NewWithEmbed()
+	if err != nil {
+		fmt.Printf("err %v\n", err)
+	}
+
+	b, err := bank.Find("0005")
+	if err != nil {
+		fmt.Printf("err %v\n", err)
+	} else {
+		fmt.Printf("bank %s", b.Name)
+	}
+
+	br, err := b.Branches.Find("恵比寿")
+	if err != nil {
+		fmt.Printf("err %v\n", err)
+	} else {
+		fmt.Printf("branch %s", br.Name)
+	}
+
 }
 
 ```
-
-## Embedded
-
-I use [fileb0x](https://github.com/UnnoTed/fileb0x).
 
 ## Note
 

@@ -3,13 +3,14 @@ package zengincode
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/derekparker/trie"
-
-	"github.com/ka2u/zengin-go/embed"
+	"github.com/rakyll/statik/fs"
 )
 
 type BankDB struct {
@@ -22,18 +23,16 @@ type BranchDB struct {
 
 // New is making Japanese ZenginCode Information mapping data
 func New() (*BankDB, error) {
-	include := os.Getenv("ZENGIN_SOURCE_INCLUDE")
 	var path, dataDir string
-	if include != "TRUE" {
-		path = os.Getenv("ZENGIN_SOURCE_ROOT")
-		if path == "" {
-			return nil, errors.New("should set ZENGIN_SOURCE_ROOT environment variable")
-		}
-		dataDir = filepath.Join(path, "data")
+	path = os.Getenv("ZENGIN_SOURCE_ROOT")
+	if path == "" {
+		return nil, errors.New("should set ZENGIN_SOURCE_ROOT environment variable")
 	}
+	dataDir = filepath.Join(path, "data")
+
 	yaml := os.Getenv("ZENGIN_SOURCE_YAML")
 
-	banksFile, err := getBanksFile(include, yaml, dataDir)
+	banksFile, err := getBanksFile(yaml, dataDir)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +50,58 @@ func New() (*BankDB, error) {
 		bk := bank[code]
 		bk.Code = code
 
-		branchFile, err := getBranchFile(include, yaml, code, branchDir)
+		branchFile, err := getBranchFile(yaml, code, branchDir)
+
+		branch := map[string]*Branch{}
+		err = json.Unmarshal(branchFile, &branch)
+		if err != nil {
+			return nil, err
+		}
+		branchdb := trie.New()
+		for bcode := range branch {
+			br := branch[bcode]
+			branchdb.Add(bcode, br)
+			branchdb.Add(br.Name, br)
+			branchdb.Add(br.Roma, br)
+		}
+
+		brd := &BranchDB{
+			Branch: branchdb,
+		}
+		bk.Branches = brd
+		bankdb.Add(code, bk)
+		bankdb.Add(bk.Name, bk)
+		bankdb.Add(bk.Roma, bk)
+	}
+
+	bd := &BankDB{
+		Bank: bankdb,
+	}
+	return bd, nil
+}
+
+func NewWithEmbed() (*BankDB, error) {
+	yaml := os.Getenv("ZENGIN_SOURCE_YAML")
+
+	fmt.Println("banks file from embed")
+	banksFile, err := getBanksFileFromEmbed(yaml)
+	if err != nil {
+		return nil, err
+	}
+
+	bank := map[string]*Bank{}
+	err = json.Unmarshal(banksFile, &bank)
+	if err != nil {
+		return nil, err
+	}
+
+	bankdb := trie.New()
+	fmt.Println("bank loop")
+	for code := range bank {
+		bk := bank[code]
+		bk.Code = code
+
+		branchFile, err := getBranchFileFromEmbed(yaml, code, "/branches")
 
 		branch := map[string]*Branch{}
 		err = json.Unmarshal(branchFile, &branch)
@@ -117,64 +167,98 @@ func (b *BranchDB) FuzzySearch(pre string) []string {
 	return b.Branch.FuzzySearch(pre)
 }
 
-func getBanksFile(include string, yaml string, dataDir string) ([]byte, error) {
+func getBanksFile(yaml string, dataDir string) ([]byte, error) {
 	var banksFile []byte
 	var err error
-	if include == "TRUE" {
-		if yaml == "TRUE" {
-			banksFile, err = embed.ReadFile("source-data/data/banks.yaml")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			banksFile, err = embed.ReadFile("source-data/data/banks.json")
-			if err != nil {
-				return nil, err
-			}
+
+	if yaml == "TRUE" {
+		yamlSource := filepath.Join(dataDir, "banks.yml")
+		banksFile, err = ioutil.ReadFile(yamlSource)
+		if err != nil {
+			return nil, err
 		}
 	} else {
-		if yaml == "TRUE" {
-			yamlSource := filepath.Join(dataDir, "banks.yml")
-			banksFile, err = ioutil.ReadFile(yamlSource)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			jsonSource := filepath.Join(dataDir, "banks.json")
-			banksFile, err = ioutil.ReadFile(jsonSource)
-			if err != nil {
-				return nil, err
-			}
+		jsonSource := filepath.Join(dataDir, "banks.json")
+		banksFile, err = ioutil.ReadFile(jsonSource)
+		if err != nil {
+			return nil, err
 		}
 	}
+
 	return banksFile, nil
 }
 
-func getBranchFile(include string, yaml string, code string, branchDir string) ([]byte, error) {
+func getBranchFile(yaml string, code string, branchDir string) ([]byte, error) {
 	var branchFile []byte
 	var err error
-	if include == "TRUE" {
-		if yaml == "TRUE" {
-			branchFile, err = embed.ReadFile("source-data/data/branches/" + code + ".yaml")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			branchFile, err = embed.ReadFile("source-data/data/branches/" + code + ".json")
-			if err != nil {
-				return nil, err
-			}
-		}
 
+	if yaml == "TRUE" {
+		branchSource := filepath.Join(branchDir, code+".yaml")
+		branchFile, err = ioutil.ReadFile(branchSource)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		if yaml == "TRUE" {
-			branchSource := filepath.Join(branchDir, code+".yaml")
-			branchFile, err = ioutil.ReadFile(branchSource)
-		} else {
-			branchSource := filepath.Join(branchDir, code+".json")
-			branchFile, err = ioutil.ReadFile(branchSource)
+		branchSource := filepath.Join(branchDir, code+".json")
+		branchFile, err = ioutil.ReadFile(branchSource)
+		if err != nil {
+			return nil, err
 		}
-
 	}
+
+	return branchFile, nil
+}
+
+func getBanksFileFromEmbed(yaml string) ([]byte, error) {
+	var banksFile []byte
+	var err error
+	var f http.File
+
+	statikFS, err := fs.New()
+	if err != nil {
+		return nil, err
+	}
+
+	if yaml == "TRUE" {
+		f, err = statikFS.Open("/banks.yml")
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		f, err = statikFS.Open("/banks.json")
+		if err != nil {
+			return nil, err
+		}
+	}
+	banksFile, err = ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return banksFile, nil
+}
+
+func getBranchFileFromEmbed(yaml string, code string, branchDir string) ([]byte, error) {
+	var branchFile []byte
+	var err error
+	var f http.File
+
+	statikFS, err := fs.New()
+	if err != nil {
+		return nil, err
+	}
+
+	if yaml == "TRUE" {
+		branchSource := filepath.Join(branchDir, code+".yaml")
+		f, err = statikFS.Open(branchSource)
+	} else {
+		branchSource := filepath.Join(branchDir, code+".json")
+		f, err = statikFS.Open(branchSource)
+	}
+	branchFile, err = ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
 	return branchFile, nil
 }
