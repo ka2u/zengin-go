@@ -7,7 +7,7 @@ import (
 )
 
 func TestBankNew(t *testing.T) {
-	os.Setenv("ZENGIN_SOURCE_INCLUDE", "TRUE")
+	os.Setenv("ZENGIN_SOURCE_ROOT", "source-data")
 	tests := []struct {
 		name    string
 		code    string
@@ -92,7 +92,7 @@ func TestBankNew(t *testing.T) {
 }
 
 func TestBranch(t *testing.T) {
-	os.Setenv("ZENGIN_SOURCE_INCLUDE", "TRUE")
+	os.Setenv("ZENGIN_SOURCE_ROOT", "source-data")
 	tests := []struct {
 		name       string
 		code       string
