@@ -3,7 +3,6 @@ package zengincode
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -83,7 +82,6 @@ func New() (*BankDB, error) {
 func NewWithEmbed() (*BankDB, error) {
 	yaml := os.Getenv("ZENGIN_SOURCE_YAML")
 
-	fmt.Println("banks file from embed")
 	banksFile, err := getBanksFileFromEmbed(yaml)
 	if err != nil {
 		return nil, err
@@ -96,7 +94,7 @@ func NewWithEmbed() (*BankDB, error) {
 	}
 
 	bankdb := trie.New()
-	fmt.Println("bank loop")
+
 	for code := range bank {
 		bk := bank[code]
 		bk.Code = code
