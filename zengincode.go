@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/derekparker/trie"
 	"github.com/rakyll/statik/fs"
+	"golang.org/x/sync/errgroup"
 )
 
 type BankDB struct {
@@ -45,32 +47,48 @@ func New() (*BankDB, error) {
 	bankdb := trie.New()
 
 	branchDir := filepath.Join(dataDir, "branches")
+	var eg errgroup.Group
+	var mux sync.Mutex
 	for code := range bank {
-		bk := bank[code]
-		bk.Code = code
+		code := code
+		eg.Go(func() error {
+			bk := bank[code]
+			bk.Code = code
+			branchFile, err := getBranchFile(yaml, code, branchDir)
 
-		branchFile, err := getBranchFile(yaml, code, branchDir)
+			branch := map[string]*Branch{}
+			mux.Lock()
+			err = json.Unmarshal(branchFile, &branch)
+			mux.Unlock()
+			if err != nil {
+				return err
+			}
+			branchdb := trie.New()
+			for bcode := range branch {
+				mux.Lock()
+				br := branch[bcode]
+				branchdb.Add(bcode, br)
+				branchdb.Add(br.Name, br)
+				branchdb.Add(br.Roma, br)
+				mux.Unlock()
+			}
 
-		branch := map[string]*Branch{}
-		err = json.Unmarshal(branchFile, &branch)
-		if err != nil {
-			return nil, err
-		}
-		branchdb := trie.New()
-		for bcode := range branch {
-			br := branch[bcode]
-			branchdb.Add(bcode, br)
-			branchdb.Add(br.Name, br)
-			branchdb.Add(br.Roma, br)
-		}
+			brd := &BranchDB{
+				Branch: branchdb,
+			}
+			bk.Branches = brd
+			mux.Lock()
+			bankdb.Add(code, bk)
+			bankdb.Add(bk.Name, bk)
+			bankdb.Add(bk.Roma, bk)
+			mux.Unlock()
+			return nil
+		})
+	}
 
-		brd := &BranchDB{
-			Branch: branchdb,
-		}
-		bk.Branches = brd
-		bankdb.Add(code, bk)
-		bankdb.Add(bk.Name, bk)
-		bankdb.Add(bk.Roma, bk)
+	err = eg.Wait()
+	if err != nil {
+		return nil, err
 	}
 
 	bd := &BankDB{
@@ -95,32 +113,49 @@ func NewWithEmbed() (*BankDB, error) {
 
 	bankdb := trie.New()
 
+	var eg errgroup.Group
+	var mux sync.Mutex
 	for code := range bank {
-		bk := bank[code]
-		bk.Code = code
+		code := code
+		eg.Go(func() error {
+			bk := bank[code]
+			bk.Code = code
 
-		branchFile, err := getBranchFileFromEmbed(yaml, code, "/branches")
+			branchFile, err := getBranchFileFromEmbed(yaml, code, "/branches")
 
-		branch := map[string]*Branch{}
-		err = json.Unmarshal(branchFile, &branch)
-		if err != nil {
-			return nil, err
-		}
-		branchdb := trie.New()
-		for bcode := range branch {
-			br := branch[bcode]
-			branchdb.Add(bcode, br)
-			branchdb.Add(br.Name, br)
-			branchdb.Add(br.Roma, br)
-		}
+			branch := map[string]*Branch{}
+			mux.Lock()
+			err = json.Unmarshal(branchFile, &branch)
+			mux.Unlock()
+			if err != nil {
+				return err
+			}
+			branchdb := trie.New()
+			for bcode := range branch {
+				mux.Lock()
+				br := branch[bcode]
+				branchdb.Add(bcode, br)
+				branchdb.Add(br.Name, br)
+				branchdb.Add(br.Roma, br)
+				mux.Unlock()
+			}
 
-		brd := &BranchDB{
-			Branch: branchdb,
-		}
-		bk.Branches = brd
-		bankdb.Add(code, bk)
-		bankdb.Add(bk.Name, bk)
-		bankdb.Add(bk.Roma, bk)
+			brd := &BranchDB{
+				Branch: branchdb,
+			}
+			bk.Branches = brd
+			mux.Lock()
+			bankdb.Add(code, bk)
+			bankdb.Add(bk.Name, bk)
+			bankdb.Add(bk.Roma, bk)
+			mux.Unlock()
+			return nil
+		})
+	}
+
+	err = eg.Wait()
+	if err != nil {
+		return nil, err
 	}
 
 	bd := &BankDB{
